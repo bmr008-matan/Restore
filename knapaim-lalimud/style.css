@@ -17,8 +17,8 @@
   --border: #e2e8f0;
   --radius: 16px;
   --radius-sm: 10px;
-  --shadow: 0 4px 24px rgba(99,102,241,0.10);
-  --shadow-md: 0 8px 40px rgba(99,102,241,0.15);
+  --shadow: 0 4px 24px rgba(21,140,140,0.12);
+  --shadow-md: 0 8px 40px rgba(21,140,140,0.18);
   --transition: 0.3s ease;
   --font: 'Heebo', sans-serif;
 }
@@ -1022,6 +1022,201 @@ h2 {
   .contact-form { padding: 28px 20px; }
 
   h2 { font-size: 1.8rem; }
+}
+
+/* ============================================
+   NAV LOGO – OWL + TEXT
+   ============================================ */
+.logo-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.nav-owl {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.logo-nav-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.logo-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+.logo-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--mid);
+}
+
+/* ============================================
+   HERO BRAND ROW
+   ============================================ */
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(21,140,140,0.2);
+  border-radius: 50px;
+  padding: 8px 20px 8px 8px;
+  display: inline-flex;
+  width: fit-content;
+}
+.hero-brand-owl {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 0;
+  line-height: 1.1;
+}
+.brand-owner {
+  font-size: 0.78rem;
+  color: var(--mid);
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* ============================================
+   HERO OWL (right side floating)
+   ============================================ */
+.hero-owl-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-owl-img {
+  width: 280px;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  animation: float-logo 6s ease-in-out infinite;
+  box-shadow: 0 16px 48px rgba(21,140,140,0.3);
+}
+.hero-owl-ring {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 2px dashed rgba(21,140,140,0.3);
+  animation: spin-slow 20s linear infinite;
+  z-index: 1;
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ============================================
+   WINGS HOLOGRAM
+   ============================================ */
+.wings-holo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.wings-svg {
+  width: 90%;
+  max-width: 1000px;
+  fill: url(#holoGrad);
+  opacity: 0.09;
+  animation: holo-shift 6s ease-in-out infinite;
+}
+@keyframes holo-shift {
+  0%   { filter: hue-rotate(0deg)   brightness(1)   saturate(1.2); opacity: 0.09; }
+  33%  { filter: hue-rotate(120deg) brightness(1.4) saturate(1.6); opacity: 0.13; }
+  66%  { filter: hue-rotate(240deg) brightness(1.2) saturate(1.4); opacity: 0.11; }
+  100% { filter: hue-rotate(360deg) brightness(1)   saturate(1.2); opacity: 0.09; }
+}
+
+.section-wings { position: relative; overflow: hidden; }
+.wings-holo-sm .wings-svg {
+  width: 70%;
+  opacity: 0.06;
+  animation-duration: 9s;
+}
+
+/* ============================================
+   ABOUT – BUSINESS NAME LINE
+   ============================================ */
+.about-business-name {
+  font-size: 1rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: -8px;
+}
+.about-business-name strong { color: var(--primary-dark); }
+
+/* ============================================
+   FEATURED SERVICE – FIX BG COLOR
+   ============================================ */
+.service-card.featured {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, #D9F2F2 0%, #fff 100%);
+}
+
+/* ============================================
+   FOOTER LOGO – OWL + TEXT
+   ============================================ */
+.footer-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.footer-owl {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.footer-brand-name {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+.footer-brand-sub {
+  display: block;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* ============================================
+   RESPONSIVE – NEW ELEMENTS
+   ============================================ */
+@media (max-width: 1024px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-owl-wrap { display: none; }
 }
 
 @media (max-width: 480px) {
