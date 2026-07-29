@@ -3,6 +3,7 @@ using API.Reporting.Configuration;
 using API.Reporting.Data;
 using API.Reporting.Rendering;
 using API.Reporting.Runtime;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace API.Reporting
 {
@@ -33,6 +34,13 @@ namespace API.Reporting
 
             services.AddScoped<SampleDataProvider>();
             services.AddScoped<IReportDataProvider>(sp => sp.GetRequiredService<SampleDataProvider>());
+
+            // Both take a DbContext, so both follow the request scope.
+            services.AddScoped<ReportTemplateStore>();
+            services.AddScoped<ReportTableSourceCatalog>();
+
+            // Injected rather than read statically, so tests can pin the clock.
+            services.TryAddSingleton(TimeProvider.System);
 
             return services;
         }

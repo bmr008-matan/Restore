@@ -476,3 +476,8 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 API/appsettings.json
+
+# SQLite runtime sidecars. These are recreated whenever the app runs and removed
+# again on clean shutdown, so tracking them only produces churn in every commit.
+*.db-shm
+*.db-wal

@@ -44,7 +44,10 @@ var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 try
 {
     context.Database.Migrate();
-    DbInitializer.Initialize(context);    
+    DbInitializer.Initialize(context);
+    // Seeds the table-id catalogue and the demo templates. Additive and idempotent: an existing row is
+    // never overwritten, so a restart cannot discard a design someone has edited.
+    await API.Reporting.Data.ReportingSeeder.SeedAsync(context, logger);
 }
 catch (Exception ex)
 {
@@ -53,3 +56,9 @@ catch (Exception ex)
 
 
 app.Run();
+
+/// <summary>
+/// Declared so integration tests can reference this entry point with WebApplicationFactory. Top-level
+/// statements otherwise compile to an internal Program class the test project cannot see.
+/// </summary>
+public partial class Program { }

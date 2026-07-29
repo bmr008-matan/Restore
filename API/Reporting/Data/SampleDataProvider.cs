@@ -133,7 +133,9 @@ namespace API.Reporting.Data
 
         private async Task<ReportDataSet> LookupAsync(
             string key,
-            System.Linq.Expressions.Expression<Func<Entities.Product, string>> selector,
+            // Fully qualified: API.Reporting.Entities also exists, so a relative "Entities.Product"
+            // resolves to the wrong namespace from here.
+            System.Linq.Expressions.Expression<Func<API.Entities.Product, string>> selector,
             int maxRows,
             CancellationToken cancellationToken)
         {
