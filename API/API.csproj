@@ -19,4 +19,9 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
   </ItemGroup>
 
+  <!-- Reporting subsystem. See API/Reporting/THIRD-PARTY-NOTICES.md for licence details. -->
+  <ItemGroup>
+    <PackageReference Include="DynamicExpresso.Core" Version="2.19.3" />
+  </ItemGroup>
+
 </Project>
