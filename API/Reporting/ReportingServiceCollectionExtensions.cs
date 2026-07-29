@@ -15,7 +15,10 @@ namespace API.Reporting
     {
         public static IServiceCollection AddReporting(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<ReportingOptions>(configuration.GetSection(ReportingOptions.SectionName));
+            var section = configuration.GetSection(ReportingOptions.SectionName);
+            services.Configure<ReportingOptions>(section);
+
+            var options = section.Get<ReportingOptions>() ?? new ReportingOptions();
 
             // Chromium is a singleton because launching a browser costs hundreds of milliseconds; doing
             // it per request would dominate the cost of every report.
@@ -34,6 +37,15 @@ namespace API.Reporting
 
             services.AddScoped<SampleDataProvider>();
             services.AddScoped<IReportDataProvider>(sp => sp.GetRequiredService<SampleDataProvider>());
+
+            // Registered only when a connection string exists. Without one, a report bound to an Oracle
+            // table id fails with "this data source is not configured on this server" — a clear message —
+            // rather than a connection error from deep inside the provider.
+            if (OracleRefCursorDataProvider.IsConfigured(options))
+            {
+                services.AddScoped<OracleRefCursorDataProvider>();
+                services.AddScoped<IReportDataProvider>(sp => sp.GetRequiredService<OracleRefCursorDataProvider>());
+            }
 
             // Both take a DbContext, so both follow the request scope.
             services.AddScoped<ReportTemplateStore>();

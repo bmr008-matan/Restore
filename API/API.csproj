@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- Lets the test project reach internal members. Used for the parts of the reporting subsystem that
+       are worth testing directly but should not be public API: command construction in the Oracle
+       provider, cursor reading, and type mapping. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="API.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
@@ -19,10 +26,18 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
   </ItemGroup>
 
-  <!-- Reporting subsystem. See API/Reporting/THIRD-PARTY-NOTICES.md for licence details. -->
+  <!-- Reporting subsystem, MIT licensed. See API/Reporting/THIRD-PARTY-NOTICES.md. -->
   <ItemGroup>
     <PackageReference Include="DynamicExpresso.Core" Version="2.19.3" />
     <PackageReference Include="PuppeteerSharp" Version="25.4.0" />
+  </ItemGroup>
+
+  <!-- The one non-MIT dependency, and unavoidable: there is no MIT Oracle driver for .NET. Free of
+       charge but under Oracle's own licence terms, and confined to API/Reporting/Data/Oracle*.cs plus
+       the template-storage provider switch. See API/Reporting/THIRD-PARTY-NOTICES.md. -->
+  <ItemGroup>
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.300" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26300" />
   </ItemGroup>
 
 </Project>

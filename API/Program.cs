@@ -12,8 +12,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 
-builder.Services.AddDbContext<StoreContext> (opt => {
-    opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
+// Template storage runs on either provider from the same entities and the same migration code: SQLite
+// locally and in CI so the designer works with no Oracle instance, Oracle in production so there is one
+// database. Selected by Reporting:Database:Provider.
+builder.Services.AddDbContext<StoreContext>(opt =>
+{
+    var provider = builder.Configuration["Reporting:Database:Provider"] ?? "Sqlite";
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+    if (string.Equals(provider, "Oracle", StringComparison.OrdinalIgnoreCase))
+        opt.UseOracle(connectionString);
+    else
+        opt.UseSqlite(connectionString);
 });
 
 builder.Services.AddReporting(builder.Configuration);
