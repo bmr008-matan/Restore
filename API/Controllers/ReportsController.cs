@@ -83,6 +83,13 @@ namespace API.Controllers
         /// instead of its bound source, which is what lets one template run either mode.
         /// </summary>
         [HttpPost("{idOrCode}/generate")]
+        // Declared explicitly because the action returns IActionResult, which tells Swashbuckle nothing.
+        // The content type goes on each response rather than on a [Produces] attribute: [Produces]
+        // applies to every response, which would document the JSON error bodies as application/pdf.
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, "application/pdf")]
+        [ProducesResponseType(typeof(ValidationProblemDto), StatusCodes.Status400BadRequest, "application/json")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
         public async Task<IActionResult> Generate(
             string idOrCode, GenerateReportRequest request, CancellationToken cancellationToken)
         {
@@ -100,6 +107,9 @@ namespace API.Controllers
         /// base64 string far more easily than a binary stream.
         /// </summary>
         [HttpPost("{idOrCode}/generate/base64")]
+        [ProducesResponseType(typeof(GeneratedReportDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GenerateBase64(
             string idOrCode, GenerateReportRequest request, CancellationToken cancellationToken)
         {
@@ -117,6 +127,8 @@ namespace API.Controllers
         /// anything — which is what keeps the preview and the final PDF the same render.
         /// </summary>
         [HttpPost("preview")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, "application/pdf")]
+        [ProducesResponseType(typeof(ValidationProblemDto), StatusCodes.Status400BadRequest, "application/json")]
         public Task<IActionResult> Preview(PreviewReportRequest request, CancellationToken cancellationToken) =>
             RenderAsync(request.Definition, request.Parameters, request.Data, request.Options,
                 "preview", asJson: false, cancellationToken);

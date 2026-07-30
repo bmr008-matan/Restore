@@ -1,5 +1,6 @@
 using API.Data;
 using API.Reporting;
+using API.Reporting.Configuration;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +10,25 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Microsoft.OpenApi v2, which Swashbuckle 10 ships, flattened these out of the .Models namespace.
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "ReStore API",
+        Version = "v1",
+        Description =
+            "Catalogue and reporting API.\n\n" +
+            "Reporting: create a template with POST /api/report-templates to get its id, discover what " +
+            "it needs with GET /api/reports/{idOrCode}/parameters, then POST " +
+            "/api/reports/{idOrCode}/generate. That endpoint accepts parameters for the server to " +
+            "resolve, or the rows themselves under \"data\", or both. Either an id or a template code " +
+            "works wherever {idOrCode} appears."
+    });
+
+    // Without this the polymorphic report elements are documented as a bare base type.
+    options.AddReportingPolymorphism();
+});
 builder.Services.AddCors();
 
 // Template storage runs on either provider from the same entities and the same migration code: SQLite
