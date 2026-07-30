@@ -15,13 +15,16 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { ElementType, ReportDefinition } from '../types/reportDefinition';
+import FitScreenIcon from '@mui/icons-material/FitScreen';
+import ViewSidebarIcon from '@mui/icons-material/ViewSidebar';
+import VerticalSplitIcon from '@mui/icons-material/VerticalSplit';
+import { contentWidthMm, ElementType, ReportDefinition } from '../types/reportDefinition';
 import reportsApi, { TableSource, ValidationMessage } from '../api/reportsApi';
 import { ApiError } from '../../../app/api/agent';
 import {
     createElement, createInitialState, designerReducer, findElement
 } from './state/designerReducer';
-import BandCanvas from './BandCanvas';
+import BandCanvas, { BASE_PX_PER_MM, CANVAS_PADDING_PX } from './BandCanvas';
 import Toolbox from './Toolbox';
 import DataPanel from './DataPanel';
 import PropertiesPanel from './PropertiesPanel';
@@ -70,6 +73,17 @@ export default function ReportDesignerPage() {
     const [pageSetupOpen, setPageSetupOpen] = useState(false);
     const [parametersOpen, setParametersOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
+
+    // Both side panels collapse, because on a laptop their fixed 220 + 380 is most of the window.
+    const [leftOpen, setLeftOpen] = useState(true);
+    const [rightOpen, setRightOpen] = useState(true);
+
+    // The preview's height in px rather than a percentage, so dragging the splitter is what sets it.
+    const [previewHeight, setPreviewHeight] = useState(280);
+
+    const canvasColumn = useRef<HTMLDivElement>(null);
+    const canvasViewport = useRef<HTMLDivElement>(null);
+    const draggingPreview = useRef(false);
 
     // Counts edits so the preview knows when to re-render, without diffing the whole definition.
     const revision = useRef(0);
@@ -164,6 +178,55 @@ export default function ReportDesignerPage() {
         return () => window.removeEventListener('keydown', handler);
     }, [save]);
 
+    /** Drag the splitter between the canvas and the preview. */
+    const startPreviewDrag = (event: React.MouseEvent) => {
+        event.preventDefault();
+        draggingPreview.current = true;
+        // Without this, dragging across the canvas selects band labels and element text as it goes.
+        document.body.style.userSelect = 'none';
+    };
+
+    useEffect(() => {
+        const move = (event: MouseEvent) => {
+            const column = canvasColumn.current;
+            if (!draggingPreview.current || !column) return;
+
+            const rect = column.getBoundingClientRect();
+            // Never let the preview swallow the canvas entirely — the splitter would become
+            // unreachable, since it is the canvas side that is being dragged against.
+            const maxHeight = Math.max(120, rect.height - 160);
+            setPreviewHeight(Math.min(Math.max(rect.bottom - event.clientY, 120), maxHeight));
+        };
+
+        const stop = () => {
+            if (!draggingPreview.current) return;
+            draggingPreview.current = false;
+            document.body.style.userSelect = '';
+        };
+
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', stop);
+        return () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', stop);
+            // Unmounting mid-drag would otherwise leave the whole document unselectable.
+            stop();
+        };
+    }, []);
+
+    /** Zooms so the page fills the canvas viewport — the fastest way to use whatever room there is. */
+    const fitWidth = useCallback(() => {
+        const viewport = canvasViewport.current;
+        if (!viewport) return;
+
+        // clientWidth excludes the viewport's own scrollbar, so fitting cannot induce a horizontal one.
+        const availablePx = viewport.clientWidth - CANVAS_PADDING_PX * 2;
+        const contentMm = contentWidthMm(state.definition.page);
+        if (availablePx <= 0 || contentMm <= 0) return;
+
+        dispatch({ type: 'setZoom', zoom: availablePx / (contentMm * BASE_PX_PER_MM) });
+    }, [state.definition.page]);
+
     const addElement = (type: ElementType) => {
         // Falls back to the detail band so clicking a tool always does something visible.
         const band = state.selectedBand ?? 'Detail';
@@ -239,6 +302,32 @@ export default function ReportDesignerPage() {
                             <ZoomInIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
+                    <Tooltip title="Fit the page to the canvas width">
+                        <IconButton size="small" onClick={fitWidth}>
+                            <FitScreenIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+
+                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+                    <Tooltip title={leftOpen ? 'Hide toolbox and data' : 'Show toolbox and data'}>
+                        <IconButton
+                            size="small"
+                            onClick={() => setLeftOpen(o => !o)}
+                            color={leftOpen ? 'primary' : 'default'}
+                        >
+                            <ViewSidebarIcon fontSize="small" sx={{ transform: 'scaleX(-1)' }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title={rightOpen ? 'Hide properties' : 'Show properties'}>
+                        <IconButton
+                            size="small"
+                            onClick={() => setRightOpen(o => !o)}
+                            color={rightOpen ? 'primary' : 'default'}
+                        >
+                            <VerticalSplitIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
 
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
 
@@ -285,17 +374,25 @@ export default function ReportDesignerPage() {
             )}
 
             <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex' }}>
-                <Paper
-                    square
-                    elevation={0}
-                    sx={{ width: 220, borderRight: '1px solid', borderColor: 'divider', overflow: 'auto' }}
-                >
-                    <Toolbox onAdd={addElement} />
-                    <Divider sx={{ my: 1 }} />
-                    <DataPanel definition={state.definition} sources={sources} dispatch={dispatch} />
-                </Paper>
+                {leftOpen && (
+                    <Paper
+                        square
+                        elevation={0}
+                        sx={{
+                            width: 220, flexShrink: 0, borderRight: '1px solid', borderColor: 'divider',
+                            overflow: 'auto'
+                        }}
+                    >
+                        <Toolbox onAdd={addElement} />
+                        <Divider sx={{ my: 1 }} />
+                        <DataPanel definition={state.definition} sources={sources} dispatch={dispatch} />
+                    </Paper>
+                )}
 
-                <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <Box
+                    ref={canvasColumn}
+                    sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}
+                >
                     <Box sx={{ flexGrow: 1, minHeight: 0 }}>
                         <BandCanvas
                             definition={state.definition}
@@ -303,29 +400,43 @@ export default function ReportDesignerPage() {
                             selectedBand={state.selectedBand}
                             zoom={state.zoom}
                             dispatch={dispatch}
+                            viewportRef={canvasViewport}
                         />
                     </Box>
 
                     {previewOpen && (
-                        <Paper
-                            square
-                            elevation={0}
-                            sx={{ height: '45%', borderTop: '1px solid', borderColor: 'divider' }}
-                        >
-                            <PdfPreviewPane
-                                definition={state.definition}
-                                revision={revision.current}
-                                autoRefresh={previewOpen}
+                        <>
+                            <Box
+                                onMouseDown={startPreviewDrag}
+                                role="separator"
+                                aria-orientation="horizontal"
+                                aria-label="Resize the preview"
+                                sx={{
+                                    height: 7, flexShrink: 0, cursor: 'row-resize',
+                                    backgroundColor: 'divider',
+                                    '&:hover': { backgroundColor: 'primary.main' }
+                                }}
                             />
-                        </Paper>
+                            <Paper
+                                square
+                                elevation={0}
+                                sx={{ height: previewHeight, flexShrink: 0, overflow: 'hidden' }}
+                            >
+                                <PdfPreviewPane
+                                    definition={state.definition}
+                                    revision={revision.current}
+                                    autoRefresh={previewOpen}
+                                />
+                            </Paper>
+                        </>
                     )}
                 </Box>
 
-                <Paper
+                {rightOpen && <Paper
                     square
                     elevation={0}
                     // Wide enough for the group and rule editors, which carry several controls per row.
-                    sx={{ width: 380, borderLeft: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column' }}
+                    sx={{ width: 380, flexShrink: 0, borderLeft: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column' }}
                 >
                     {selected && (
                         <Stack direction="row" spacing={0.5} sx={{ p: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -356,7 +467,7 @@ export default function ReportDesignerPage() {
                             dispatch={dispatch}
                         />
                     </Box>
-                </Paper>
+                </Paper>}
             </Box>
 
             <PageSetupDialog

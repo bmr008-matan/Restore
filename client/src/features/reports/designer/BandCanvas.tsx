@@ -16,10 +16,15 @@ interface Props {
     selectedBand: BandKind | null;
     zoom: number;
     dispatch: React.Dispatch<DesignerAction>;
+    /** The scrolling viewport, so the toolbar's "fit width" can measure the space actually available. */
+    viewportRef?: React.Ref<HTMLDivElement>;
 }
 
 /** Base scale at 100% zoom. A4's 210mm then comes to a comfortable on-screen width. */
-const BASE_PX_PER_MM = 3.4;
+export const BASE_PX_PER_MM = 3.4;
+
+/** Padding around the page inside the viewport. Exported so "fit width" can subtract it. */
+export const CANVAS_PADDING_PX = 16;
 
 /**
  * The page canvas: bands stacked in render order, each a positioning context for its elements.
@@ -29,14 +34,20 @@ const BASE_PX_PER_MM = 3.4;
  * uses. Showing the full paper would mean every element's stored x had to be offset by the left margin.
  */
 export default function BandCanvas({
-    definition, selectedElementId, selectedBand, zoom, dispatch
+    definition, selectedElementId, selectedBand, zoom, dispatch, viewportRef
 }: Props) {
     const pxPerMm = BASE_PX_PER_MM * zoom;
     const { widthMm } = pageSizeMm(definition.page);
     const contentMm = widthMm - definition.page.margins.leftMm - definition.page.margins.rightMm;
 
     return (
-        <Box sx={{ p: 2, overflow: 'auto', height: '100%', backgroundColor: 'action.hover' }}>
+        <Box
+            ref={viewportRef}
+            sx={{
+                p: `${CANVAS_PADDING_PX}px`, overflow: 'auto', height: '100%',
+                backgroundColor: 'action.hover'
+            }}
+        >
             <Paper
                 elevation={3}
                 sx={{ width: contentMm * pxPerMm, mx: 'auto', backgroundColor: 'background.paper' }}
