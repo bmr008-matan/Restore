@@ -44,21 +44,46 @@ export class ApiError extends Error {
     }
 }
 
+/** The error shape the API returns: ProblemDetails, or ValidationProblemDto for per-field messages. */
+interface ApiErrorBody {
+    message?: string;
+    errors?: ApiValidationMessage[];
+    title?: string;
+}
+
+/**
+ * The PDF endpoints ask for `responseType: 'blob'`, and axios honours that for error responses too — so
+ * a failed render arrives as a Blob wrapping JSON rather than as parsed JSON. Reading it back is what
+ * keeps the server's actual explanation ("no Chromium found", a validation message) instead of
+ * collapsing every failure into the generic fallback below.
+ */
+async function readErrorBody(raw: unknown): Promise<ApiErrorBody | undefined> {
+    if (!(raw instanceof Blob)) return raw as ApiErrorBody | undefined;
+
+    try {
+        const text = await raw.text();
+        return text ? (JSON.parse(text) as ApiErrorBody) : undefined;
+    } catch {
+        // A non-JSON body — an HTML error page, say — leaves the generic message in place.
+        return undefined;
+    }
+}
+
 agent.interceptors.response.use(
     (response: AxiosResponse) => response,
-    (error: AxiosError) => {
+    async (error: AxiosError) => {
         const status = error.response?.status ?? 0;
-        const data = error.response?.data as
-            { message?: string; errors?: ApiValidationMessage[]; title?: string } | undefined;
 
         if (status === 0) {
             return Promise.reject(new ApiError(
                 'Could not reach the API. Is the server running?', 0));
         }
 
+        const data = await readErrorBody(error.response?.data);
+
         const message = data?.message
             ?? data?.title
-            ?? (status === 404 ? 'Not found.' : 'The request failed.');
+            ?? (status === 404 ? 'Not found.' : `The request failed (HTTP ${status}).`);
 
         return Promise.reject(new ApiError(message, status, data?.errors ?? []));
     }
