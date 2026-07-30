@@ -38,7 +38,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors( opt => {
-opt.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:3000");
+opt.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:3000")
+   // A browser can only read response headers the server explicitly exposes. Without this the
+   // reporting metadata headers are invisible to fetch/XHR, so the client sees a page count of zero
+   // and cannot tell that a report was truncated.
+   .WithExposedHeaders(
+       "X-Report-Page-Count",
+       "X-Report-Duration-Ms",
+       "X-Report-Truncated",
+       "X-Report-Diagnostics",
+       "Content-Disposition");
 }
 );
 // app.UseHttpsRedirection();
