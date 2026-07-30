@@ -40,4 +40,52 @@
     <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26300" />
   </ItemGroup>
 
+  <!-- Builds the React client into wwwroot so a single published site serves both. See DEPLOY-IIS.md.
+
+       Publish only, never on plain build: this shells out to npm, and a normal `dotnet build` or
+       `dotnet test` should not depend on Node being installed. Set -p:BuildClient=false to skip it when
+       publishing the API alone. -->
+  <PropertyGroup>
+    <BuildClient Condition="'$(BuildClient)' == ''">true</BuildClient>
+    <ClientDirectory>$(MSBuildProjectDirectory)/../client</ClientDirectory>
+  </PropertyGroup>
+
+  <Target Name="BuildReactClient" BeforeTargets="PrepareForPublish" Condition="'$(BuildClient)' == 'true'">
+    <!-- Degrade to a warning rather than failing the publish: someone publishing on a machine without
+         Node still gets a working API, just without the bundled client. -->
+    <Exec Command="npm --version" ContinueOnError="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="NpmExitCode" />
+    </Exec>
+
+    <Warning Condition="'$(NpmExitCode)' != '0'"
+             Text="npm was not found, so the React client was not built into wwwroot. The published API will serve no UI. Install Node, or pass -p:BuildClient=false to silence this." />
+    <Warning Condition="'$(NpmExitCode)' == '0' AND !Exists('$(ClientDirectory)/package.json')"
+             Text="No client/package.json at $(ClientDirectory), so the React client was not built into wwwroot." />
+
+    <PropertyGroup>
+      <ShouldBuildClient Condition="'$(NpmExitCode)' == '0' AND Exists('$(ClientDirectory)/package.json')">true</ShouldBuildClient>
+    </PropertyGroup>
+
+    <!-- CI=false because create-react-app promotes lint warnings to errors when CI is set, which is a
+         surprising way for a deployment to fail. -->
+    <Exec Condition="'$(ShouldBuildClient)' == 'true'"
+          Command="npm ci --no-audit --no-fund" WorkingDirectory="$(ClientDirectory)" />
+    <Exec Condition="'$(ShouldBuildClient)' == 'true'"
+          Command="npm run build" WorkingDirectory="$(ClientDirectory)" EnvironmentVariables="CI=false" />
+
+    <ItemGroup Condition="'$(ShouldBuildClient)' == 'true'">
+      <ClientBuildOutput Include="$(ClientDirectory)/build/**/*" />
+    </ItemGroup>
+
+    <!-- Copied into wwwroot and then picked up as content, so it lands in the publish output. -->
+    <Copy Condition="'$(ShouldBuildClient)' == 'true'"
+          SourceFiles="@(ClientBuildOutput)"
+          DestinationFiles="@(ClientBuildOutput->'$(MSBuildProjectDirectory)/wwwroot/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+
+    <ItemGroup Condition="'$(ShouldBuildClient)' == 'true'">
+      <Content Include="wwwroot/**/*" CopyToPublishDirectory="PreserveNewest" Exclude="@(Content)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

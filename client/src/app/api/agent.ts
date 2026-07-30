@@ -3,9 +3,18 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 /**
  * Shared axios instance. The project had no central API layer, so this is the first one: base URL and
  * error shaping live here rather than being repeated at every call site.
+ *
+ * The default is relative on purpose. In production the API serves the built client from its own
+ * wwwroot, so "/api" resolves to the same origin and no CORS is involved; in development the CRA dev
+ * server proxies "/api" to the API (see "proxy" in package.json), so the same relative path works there
+ * too. An absolute default would be baked into the bundle at build time — CRA inlines env vars during
+ * `npm run build` — and a build made on a developer's machine would then ask every user's browser to
+ * call localhost.
+ *
+ * REACT_APP_API_URL still overrides it, for hosting the client separately from the API.
  */
 const agent = axios.create({
-    baseURL: process.env.REACT_APP_API_URL ?? 'http://localhost:5000/api'
+    baseURL: process.env.REACT_APP_API_URL ?? '/api'
 });
 
 /** Validation errors the API returns per field, from ValidationProblemDto. */

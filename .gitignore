@@ -481,3 +481,9 @@ API/appsettings.json
 # again on clean shutdown, so tracking them only produces churn in every commit.
 *.db-shm
 *.db-wal
+
+# The React client is built into the API's wwwroot at publish time; that output is not source. The
+# directory itself is tracked via .gitkeep because the ASP.NET Core static-web-assets loader resolves
+# it during WebApplication.CreateBuilder and throws DirectoryNotFoundException if it is missing.
+API/wwwroot/*
+!API/wwwroot/.gitkeep

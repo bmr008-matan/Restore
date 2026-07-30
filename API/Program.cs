@@ -56,24 +56,74 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors( opt => {
-opt.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:3000")
-   // A browser can only read response headers the server explicitly exposes. Without this the
-   // reporting metadata headers are invisible to fetch/XHR, so the client sees a page count of zero
-   // and cannot tell that a report was truncated.
-   .WithExposedHeaders(
-       "X-Report-Page-Count",
-       "X-Report-Duration-Ms",
-       "X-Report-Truncated",
-       "X-Report-Diagnostics",
-       "Content-Disposition");
+// The built React client is served from wwwroot, so one site hosts both and CORS is unnecessary. It is
+// only present once the client has been built (the publish target does this, see DEPLOY-IIS.md), and
+// the API has to run without it — a fresh clone has no wwwroot, and static file hosting throws rather
+// than no-ops when the directory is missing.
+var webRootPath = app.Environment.WebRootPath;
+var clientIsPresent = !string.IsNullOrEmpty(webRootPath)
+                      && File.Exists(Path.Combine(webRootPath, "index.html"));
+
+if (clientIsPresent)
+{
+    // These must come before UseRouting, and UseRouting has to be called explicitly here rather than
+    // left to the minimal-hosting default. StaticFileMiddleware deliberately stands down when routing
+    // has already selected an endpoint, and the SPA fallback below is a catch-all matching every asset
+    // path. With the automatic UseRouting — inserted ahead of all user middleware — every request for a
+    // .js or .css file matched the fallback first and came back as index.html, which loads a blank page
+    // with a MIME-type error and no obvious cause.
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
 }
-);
+else
+{
+    app.Logger.LogInformation(
+        "No client build found in wwwroot, so this instance serves the API only. Run 'npm run build' in " +
+        "client/ and copy build/ into API/wwwroot, or publish with the BuildClient target.");
+}
+
+app.UseRouting();
+
+// CORS is only needed when the client is served from a different origin. Leave Cors:AllowedOrigins
+// empty for the single-site deployment and the middleware is not added at all.
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
+if (allowedOrigins.Length > 0)
+{
+    app.UseCors(opt =>
+    {
+        opt.AllowAnyHeader().AllowAnyMethod().WithOrigins(allowedOrigins)
+           // A browser can only read response headers the server explicitly exposes. Without this the
+           // reporting metadata headers are invisible to fetch/XHR, so the client sees a page count of
+           // zero and cannot tell that a report was truncated.
+           .WithExposedHeaders(
+               "X-Report-Page-Count",
+               "X-Report-Duration-Ms",
+               "X-Report-Truncated",
+               "X-Report-Diagnostics",
+               "Content-Disposition");
+    });
+}
+
 // app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Client-side routes such as /reports/design/1 are not files on disk, so they are served the SPA shell
+// and React Router takes over.
+//
+// The regex is the important part. A bare MapFallbackToFile would also answer /api/nonexistent with
+// index.html and a 200, turning every mistyped endpoint into a silent HTML response instead of a 404 —
+// which is maddening to debug from a client. Excluding api/ and swagger/ keeps those returning what
+// they should.
+if (clientIsPresent)
+{
+    app.MapFallbackToFile("{*path:regex(^(?!api/|swagger/).*$)}", "index.html");
+}
 
 var scope = app.Services.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<StoreContext>();

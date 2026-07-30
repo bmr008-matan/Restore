@@ -2,6 +2,8 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "//proxy": "Forwards /api to the API during development so the client uses the same relative URL it uses in production, where the API serves this build from its own wwwroot. Keeps CORS out of both.",
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
