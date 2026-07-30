@@ -244,7 +244,8 @@ export default function ReportDesignerPage() {
     }
 
     return (
-        <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+        // Fills the shell, which is already exactly the viewport height — no header to subtract.
+        <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <AppBar position="static" color="default" elevation={1}>
                 <Toolbar variant="dense" sx={{ gap: 1 }}>
                     <Tooltip title="Back to reports">

@@ -61,9 +61,16 @@ export default function ReportListPage() {
     };
 
     return (
-        <Box sx={{ mt: 3 }}>
+        // Scrolls within the shell rather than the document, and spans the window — there is no
+        // width-limited Container above this any more.
+        <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto', px: 3, py: 2 }}>
             <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h5" sx={{ flexGrow: 1 }}>Reports</Typography>
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h5">Reports</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        Design a layout, then run it to a PDF.
+                    </Typography>
+                </Box>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
                     New report
                 </Button>
