@@ -40,7 +40,7 @@
     <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26300" />
   </ItemGroup>
 
-  <!-- Builds the React client into wwwroot so a single published site serves both. See DEPLOY-IIS.md.
+  <!-- Builds the React client into wwwroot so a single published site serves both. See RUNNING.md.
 
        Publish only, never on plain build: this shells out to npm, and a normal `dotnet build` or
        `dotnet test` should not depend on Node being installed. Set -p:BuildClient=false to skip it when

@@ -156,6 +156,11 @@ internal sealed class SpaHostFactory : WebApplicationFactory<Program>
         builder.UseEnvironment(Environments.Development);
         builder.UseWebRoot(_webRoot);
 
+        // Without this the static web assets manifest overlays the project's real API/wwwroot on top of
+        // the web root set above, so once anyone has built the client these tests would silently assert
+        // against the actual bundle instead of the fixture and fail. Opting out keeps them hermetic.
+        builder.UseSetting(WebHostDefaults.StaticWebAssetsKey, "false");
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<StoreContext>>();

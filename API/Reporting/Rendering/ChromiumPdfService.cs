@@ -166,15 +166,38 @@ namespace API.Reporting.Rendering
                     "Reporting:Chromium:ExecutablePath points at {Path}, which does not exist.", configured);
             }
 
-            var candidates = new[]
-            {
-                "/opt/pw-browsers/chromium",
-                "/usr/bin/chromium",
-                "/usr/bin/chromium-browser",
-                "/usr/bin/google-chrome"
-            };
+            return CandidatePaths().FirstOrDefault(File.Exists);
+        }
 
-            return candidates.FirstOrDefault(File.Exists);
+        /// <summary>
+        /// Well-known browser locations, in preference order, across the platforms this runs on.
+        ///
+        /// Edge is included for Windows on purpose: it ships with Windows 10 and 11 and is Chromium
+        /// based, so a developer pressing F5 gets working PDF rendering without installing anything and
+        /// without PuppeteerSharp downloading its own copy.
+        /// </summary>
+        private static IEnumerable<string> CandidatePaths()
+        {
+            yield return "/opt/pw-browsers/chromium";
+            yield return "/usr/bin/chromium";
+            yield return "/usr/bin/chromium-browser";
+            yield return "/usr/bin/google-chrome";
+
+            foreach (var root in new[]
+                     {
+                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                         // Chrome installs here when installed per-user without admin rights.
+                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                     })
+            {
+                if (string.IsNullOrEmpty(root)) continue;
+
+                yield return Path.Combine(root, "Google", "Chrome", "Application", "chrome.exe");
+                yield return Path.Combine(root, "Microsoft", "Edge", "Application", "msedge.exe");
+            }
+
+            yield return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
         }
 
         /// <summary>

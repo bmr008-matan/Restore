@@ -57,7 +57,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // The built React client is served from wwwroot, so one site hosts both and CORS is unnecessary. It is
-// only present once the client has been built (the publish target does this, see DEPLOY-IIS.md), and
+// only present once the client has been built (the publish target does this, see RUNNING.md), and
 // the API has to run without it — a fresh clone has no wwwroot, and static file hosting throws rather
 // than no-ops when the directory is missing.
 var webRootPath = app.Environment.WebRootPath;

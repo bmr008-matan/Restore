@@ -1,3 +1,60 @@
+# Running and deploying
+
+## Running from Visual Studio
+
+Open **`ReStore.sln`**. It contains `API` and `API.Tests`. The React client is a create-react-app
+project and is deliberately not in the solution.
+
+**Requires .NET 10**, so Visual Studio 2026. Visual Studio 2022 supports up to .NET 9 and will not load
+these projects. If you are stuck on 2022, either use the CLI (`dotnet run --project API`) or retarget
+both `.csproj` files to `net8.0` — still LTS, but only until November 2026.
+
+### Option A — one process, everything at localhost:5000
+
+Build the client once, then just F5.
+
+```bash
+cd client
+npm install
+npm run build
+xcopy /E /I /Y build ..\API\wwwroot     # Windows
+```
+
+Press **F5** on `API`. The whole app is at `http://localhost:5000`, Swagger at `/swagger`. This is the
+same arrangement as production, so it is the better way to reproduce a deployment problem.
+
+Repeat the copy after any client change — there is no hot reload this way.
+
+### Option B — two processes, with hot reload (normal development)
+
+1. Press **F5** on `API` (or Ctrl+F5 to skip the debugger). It listens on `http://localhost:5000`.
+2. In a terminal: `cd client && npm start` → `http://localhost:3000`.
+
+The dev server proxies `/api` to port 5000, so the client uses the same relative URL it uses in
+production and no CORS is involved. Edit React files and the browser reloads itself.
+
+To debug both at once, run the API from Visual Studio and the client from VS Code.
+
+### Which launch profile
+
+`API` has two, and they differ only in where the browser opens:
+
+- **http** — opens Swagger. Use it when working on the API.
+- **API and client (single site)** — opens the app root. Use it with Option A.
+
+### First-run notes
+
+- **Chromium.** PDF rendering launches a browser. `Reporting:Chromium:ExecutablePath` is empty by
+  default and the app finds Chrome, Edge or Chromium automatically — Edge ships with Windows, so this
+  works out of the box. Set the path explicitly if you want a specific browser. Only if nothing is found
+  does PuppeteerSharp download its own copy, which is slow the first time and needs internet access.
+- **Database.** SQLite (`API/store.db`), created and seeded on first run with two demo reports. Nothing
+  to install, and no Oracle instance needed.
+- **Tests.** Test Explorer, or `dotnet test`. The tests that need a browser skip themselves rather than
+  fail if none is found.
+
+---
+
 # Deploying to IIS
 
 One IIS site serves both the API and the React client. The API hosts the built client from its own
